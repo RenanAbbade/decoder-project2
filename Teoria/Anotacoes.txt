@@ -1,1 +1,9 @@
 password postgrees: 586910
+
+Spring MVC pattern com Spring Web
+
+- O framework Spring Web utiliza o padrão MVC
+- No momento que a Request chega na API, o componente DispatcherServlet (Com o Spring Boot, as configurações ficam encapsuladas), mas em resumo no momento em que a request chega, o DispatcherServlet recebe a solicitação, e utilizará do HandlerMapping que irá fazer o mapeamento /roteamento encontrando qual controller irá responder a aquela request, que por sua vez terá acesso a camada de negócio e irá trabalhar com o modelo e lógica de negócio.
+- Em uma aplicação que também possui view, o DispatcherServlet utiliza o ViewResolver para reconhecer a view determinada da request.
+- Tomcat: ServletContainer (Spring Web, encapsula o funcionamento).
+
