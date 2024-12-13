@@ -2,7 +2,6 @@ package com.ead.authuser.service;
 
 import com.ead.authuser.dto.UserRecordDto;
 import com.ead.authuser.model.UserModel;
-import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,4 +20,10 @@ public interface UserService {
     boolean existByUsername(String username);
 
     boolean existByEmail(String email);
+
+    UserModel updateUser(UserRecordDto userRecordDto, UserModel userModel);
+
+    UserModel updatePassword(UserRecordDto userRecordDto, UserModel userModel);
+
+    UserModel updateImage(UserRecordDto userRecordDto, UserModel userModel);
 }

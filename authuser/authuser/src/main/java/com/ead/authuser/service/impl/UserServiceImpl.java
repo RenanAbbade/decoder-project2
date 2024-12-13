@@ -34,7 +34,7 @@ public class UserServiceImpl implements UserService {
     public Optional<UserModel> findById(UUID userId) {
         Optional<UserModel> userModelOptional = userRepository.findById(userId);
 
-        if(userModelOptional.isEmpty())
+        if (userModelOptional.isEmpty())
             throw new NotFoundException("Error: User not found!");
 
         return userModelOptional;
@@ -66,5 +66,29 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean existByEmail(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    @Override
+    public UserModel updateUser(UserRecordDto userRecordDto, UserModel userModel) {
+        userModel = UserModel.builder()
+                .fullName(userRecordDto.fullName())
+                .phoneNumber(userRecordDto.phoneNumber())
+                .lastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")))
+                .build();
+        return userRepository.save(userModel);
+    }
+
+    @Override
+    public UserModel updatePassword(UserRecordDto userRecordDto, UserModel userModel) {
+        userModel.setPassword(userRecordDto.password());
+        userModel.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
+        return userRepository.save(userModel);
+    }
+
+    @Override
+    public UserModel updateImage(UserRecordDto userRecordDto, UserModel userModel) {
+        userModel.setImageUrl(userRecordDto.imageUrl());
+        userModel.setLastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")));
+        return userRepository.save(userModel);
     }
 }
