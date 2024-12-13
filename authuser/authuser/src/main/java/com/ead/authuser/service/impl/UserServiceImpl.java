@@ -7,6 +7,7 @@ import com.ead.authuser.exceptions.NotFoundException;
 import com.ead.authuser.model.UserModel;
 import com.ead.authuser.repository.UserRepository;
 import com.ead.authuser.service.UserService;
+import org.apache.catalina.User;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
@@ -66,5 +67,15 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean existByEmail(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    @Override
+    public UserModel updateUser(UserRecordDto userRecordDto, UserModel userModel) {
+        userModel = UserModel.builder()
+                .fullName(userRecordDto.fullName())
+                .phoneNumber(userRecordDto.phoneNumber())
+                .lastUpdateDate(LocalDateTime.now(ZoneId.of("UTC")))
+                .build();
+        return userRepository.save(userModel);
     }
 }
