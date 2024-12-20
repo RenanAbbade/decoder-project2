@@ -1,9 +1,32 @@
-password postgrees: 586910
-
 Spring MVC pattern com Spring Web
+
+password postgrees: 586910
 
 - O framework Spring Web utiliza o padrão MVC
 - No momento que a Request chega na API, o componente DispatcherServlet (Com o Spring Boot, as configurações ficam encapsuladas), mas em resumo no momento em que a request chega, o DispatcherServlet recebe a solicitação, e utilizará do HandlerMapping que irá fazer o mapeamento /roteamento encontrando qual controller irá responder a aquela request, que por sua vez terá acesso a camada de negócio e irá trabalhar com o modelo e lógica de negócio.
 - Em uma aplicação que também possui view, o DispatcherServlet utiliza o ViewResolver para reconhecer a view determinada da request.
 - Tomcat: ServletContainer (Spring Web, encapsula o funcionamento).
+
+
+Jakarta Bean Validation
+
+É uma especificação Java que possibilita trabalhar com validações e restrições através de anotações.
+
+Dependencia Spring Validation.
+
+Annotations:
+
+@NotBlank: Onde o atributo não pode ser null e não pode ser uma String vazia.
+
+@Email: Verificar o padrão de email por meio de regex.
+
+@NotNull: Não aceita valores nulos.
+
+@Size: Define um tamanho limite de caracteres para a String.
+
+@Min e @Max: Estabelece valores especificos no qual tipos Number são delimitados.
+
+@Past e @Future: Delimita campos do tipo Date e Calendar como passado e futuro respectivamente.
+
+@AssertTrue @AssertFalse: Restringe que o atributo precisa ser booleano True ou False.
 
