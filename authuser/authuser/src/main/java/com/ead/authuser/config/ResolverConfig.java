@@ -1,5 +1,6 @@
 package com.ead.authuser.config;
 
+import net.kaczmarzyk.spring.data.jpa.web.SpecificationArgumentResolver;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
@@ -17,6 +18,8 @@ public class ResolverConfig implements WebMvcConfigurer {
 
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> argumentResolvers){
+        argumentResolvers.add(new SpecificationArgumentResolver()); //a lib kaczmarzyk faz a conversão de parametros enviados pelo client para tipos java
+
         var pageableHandlerMethodArgumentResolver = new PageableHandlerMethodArgumentResolver();
         int PAGE_SIZE = 10;
         int PAGE_NUMBER = 0;

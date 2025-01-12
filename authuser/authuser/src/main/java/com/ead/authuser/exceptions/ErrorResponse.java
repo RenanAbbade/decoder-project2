@@ -5,18 +5,17 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.HashMap;
 import java.util.Map;
 
-
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ErrorResponse {
 
     private int errorCode;
     private String errorMessage;
-    private Map<String, String> errorDetails = new HashMap<>();
+    private Map<String, String> errorsDetails = new HashMap<>();
 
-    public ErrorResponse(int errorCode, String errorMessage, Map<String, String> errorDetails) {
+    public ErrorResponse(int errorCode, String errorMessage, Map<String, String> errorsDetails) {
         this.errorCode = errorCode;
         this.errorMessage = errorMessage;
-        this.errorDetails = errorDetails;
+        this.errorsDetails = errorsDetails;
     }
 
     public int getErrorCode() {
@@ -35,7 +34,11 @@ public class ErrorResponse {
         this.errorMessage = errorMessage;
     }
 
-    public Map<String, String> getErrorDetails() {
-        return errorDetails;
+    public Map<String, String> getErrorsDetails() {
+        return errorsDetails;
+    }
+
+    public void setErrorsDetails(Map<String, String> errorsDetails) {
+        this.errorsDetails = errorsDetails;
     }
 }
