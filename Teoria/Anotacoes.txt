@@ -660,3 +660,75 @@ O impacto de **Lazy Loading** e **Eager Loading** no desempenho de uma aplicaç�
 - **Eager Loading** pode ser útil quando você sabe que precisa de todos os dados de uma vez, mas pode causar **consultas pesadas** e **uso excessivo de memória**, especialmente quando há grandes coleções.
 
 A escolha entre **Lazy Loading** e **Eager Loading** deve ser feita considerando o **cenário específico de uso** e as **necessidades de desempenho** da aplicação.
+
+-- Prevenção de Ref. Ciclica -- 
+
+A anotação `@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)` é usada para controlar a serialização e desserialização de propriedades em objetos, especialmente quando você deseja controlar como uma propriedade será manipulada durante o processo de conversão entre objetos Java e JSON.
+
+### Significado de `@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)`:
+
+- **`WRITE_ONLY`**: Essa configuração indica que a propriedade será **apenas gravada (escrita)** durante a desserialização (quando o JSON é convertido para um objeto Java), mas **não será incluída no JSON durante a serialização (quando o objeto Java é convertido para JSON)**.
+
+#### **Como funciona no contexto de coleções mapeadas com `@OneToMany` e `@ManyToOne`:**
+
+Quando você tem coleções mapeadas com as anotações **`@OneToMany`** ou **`@ManyToOne`**, o Hibernate ou JPA cuida do carregamento das associações entre as entidades, e você pode acabar com ciclos de referência (ou seja, objetos que se referenciam uns aos outros). Isso pode causar problemas ao tentar serializar as entidades para JSON, pois o mecanismo de serialização pode entrar em um loop infinito se houver referências circulares entre as entidades.
+
+#### **Exemplo de problema:**
+Considerando uma relação bidirecional entre duas entidades, como `Curso` e `Aluno`:
+
+```java
+@Entity
+public class Curso {
+    @OneToMany(mappedBy = "curso")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private Set<Aluno> alunos;
+}
+
+@Entity
+public class Aluno {
+    @ManyToOne
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private Curso curso;
+}
+```
+
+- No exemplo acima, a anotação `@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)` é aplicada nas propriedades que representam as coleções de associações entre `Curso` e `Aluno`.
+- Isso significa que, durante a **serialização** do objeto, as coleções (ou associações) **não serão incluídas no JSON**. Ou seja, quando você converter um `Curso` para JSON, a lista de `Alunos` associada ao curso **não será incluída no JSON**.
+- Durante a **desserialização** (quando você está recebendo um JSON e transformando de volta em um objeto), as coleções serão **aceitas e populadas**, mas **não aparecerão na resposta JSON**.
+
+### **Cenários de uso comuns:**
+- **Evitar ciclos de referência**: Quando você tem uma relação bidirecional entre as entidades, como no exemplo acima, o uso de `@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)` ajuda a evitar **loops infinitos** durante a serialização. Isso ocorre porque o Hibernate gerencia as associações de forma que, ao serializar o `Aluno`, ele não tenta serializar novamente o `Curso` e vice-versa.
+- **Filtragem de dados sensíveis**: Se você tiver dados que não quer que sejam expostos via API (por exemplo, um conjunto de registros de transações, senhas ou outros dados sensíveis), a anotação pode ser usada para ocultá-los da serialização.
+
+### **Exemplo de comportamento:**
+
+Com a anotação `@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)`, o comportamento seria o seguinte:
+
+#### Serialização:
+```json
+{
+  "id": 1,
+  "nome": "Curso de Java"
+}
+```
+Na serialização do `Curso`, a coleção de `alunos` não será incluída no JSON.
+
+#### Desserialização:
+Suponha que você receba um JSON como este para criar um novo `Curso`:
+
+```json
+{
+  "id": 1,
+  "nome": "Curso de Java",
+  "alunos": [
+    { "id": 1, "nome": "Aluno 1" },
+    { "id": 2, "nome": "Aluno 2" }
+  ]
+}
+```
+
+Aqui, os dados da coleção de `alunos` seriam usados para **preencher o `Set<Aluno>`** na entidade `Curso`, mas **não seriam retornados** na resposta de uma requisição.
+
+### **Conclusão:**
+
+A anotação `@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)` é uma maneira eficiente de controlar como as coleções e associações são tratadas ao converter objetos Java para JSON e vice-versa. Usá-la acima de propriedades mapeadas com `@OneToMany` ou `@ManyToOne` ajuda a evitar problemas de **serialização circular** e pode ser útil para proteger ou omitir certos dados durante a **exposição de dados via API REST**.
