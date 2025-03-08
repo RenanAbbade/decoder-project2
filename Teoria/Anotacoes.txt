@@ -541,3 +541,122 @@ Aqui está o que está acontecendo:
 Ao executar essa linha, você está adicionando um link auto-referencial ("self") à entidade `user`. O cliente poderá então seguir esse link para obter mais informações sobre o próprio usuário, como se estivesse navegando pela API.
 
 O HATEOAS melhora a navegabilidade da API, tornando-a mais "descoberta" pelo cliente, já que ele pode, por exemplo, seguir os links que a API fornece para acessar outros recursos relacionados sem ter que saber previamente os URLs exatos.
+
+
+-- Performance com Hibernate --
+
+O **Hibernate** lida com diferentes tipos de coleções (`Set`, `List`, `Map`, etc.) de maneiras distintas, e essas diferenças podem afetar o desempenho da aplicação de forma significativa. Essas coleções são usadas em entidades como **relacionamentos** entre objetos, e o Hibernate oferece estratégias de mapeamento e gerenciamento de dados diferentes para cada tipo de coleção.
+
+### Diferenças de como o Hibernate lida com coleções
+
+1. **`List` (Lista ordenada):**
+   - **Comportamento:** Uma `List` em Java mantém a ordem dos elementos. No Hibernate, a coleção `List` é tipicamente mapeada com um **índice** para garantir a ordem dos elementos.
+   - **Estratégia de Mapeamento:** Para garantir a ordem, o Hibernate normalmente cria uma **tabela de associação** extra (caso seja um relacionamento entre entidades) ou utiliza um campo de índice diretamente na tabela principal para controlar a ordem dos itens.
+   - **Desempenho:** A utilização de `List` pode impactar o desempenho quando o número de elementos for grande, pois o Hibernate precisa garantir a ordem, o que pode envolver o uso de índices ou de tabelas extras para armazenar a posição dos itens.
+
+2. **`Set` (Conjunto, sem ordem):**
+   - **Comportamento:** O `Set` não garante uma ordem, o que significa que os elementos são armazenados de forma não ordenada. O Hibernate pode usar uma **tabela de associação** simples ou fazer uso de **chaves primárias compostas** para representar os elementos.
+   - **Estratégia de Mapeamento:** O Hibernate, para o `Set`, utiliza **mapeamento de associação simples** e, muitas vezes, não cria índices ou outras estruturas extras, pois a ordem não é relevante.
+   - **Desempenho:** O `Set` tende a ser mais eficiente do que a `List` em termos de desempenho porque não precisa de gerenciamento de índices ou de manter a ordem. No entanto, o Hibernate ainda cria uma tabela de associação ou usa `JOIN` para buscar os dados relacionados, o que pode ter impacto dependendo do número de registros e do tipo de relacionamento (ex.: `ManyToMany`).
+
+3. **`Map` (Mapa de chave-valor):**
+   - **Comportamento:** O `Map` armazena pares de chave-valor. Em um relacionamento de banco de dados, isso geralmente implica em uma tabela de associação com uma chave única (geralmente a chave do objeto) e um valor associado.
+   - **Estratégia de Mapeamento:** O Hibernate pode mapear `Map` de várias maneiras, mas, frequentemente, usa uma **tabela de associação** que inclui a chave e o valor como colunas distintas. Ou seja, a chave do `Map` geralmente mapeia para uma coluna de chave estrangeira na tabela, e o valor pode ser mapeado como outro tipo de dado.
+   - **Desempenho:** O uso de `Map` pode ser mais pesado do que `Set` ou `List`, pois implica que o Hibernate precisa de uma tabela de associação com dois campos: um para a chave e outro para o valor. No entanto, a escolha de `Map` pode ser vantajosa quando você realmente precisa associar valores a chaves específicas.
+
+4. **`Queue` (Fila):**
+   - **Comportamento:** Embora não seja um tipo de coleção tão comum em mapeamentos ORM, o `Queue` é um tipo de coleção que pode ser mapeado usando a estratégia de **`List`**, com o controle da ordem de inserção. A diferença é que o `Queue` pode ser mais eficiente para cenários em que é necessário inserir/remover elementos em uma ordem específica (FIFO).
+   - **Estratégia de Mapeamento:** Geralmente, o `Queue` é mapeado de forma semelhante a uma `List`, mas com as operações que precisam ser otimizadas para inserções e remoções no final ou início da coleção.
+   - **Desempenho:** O desempenho depende do tipo de fila e da implementação utilizada. Para muitos elementos e operações frequentes de inserção e remoção, o desempenho pode ser impactado pela estratégia de mapeamento.
+
+### Diferenças de Performance: `Set`, `List`, e `Map` em Hibernate
+
+1. **`Set` vs. `List`:**
+   - **`Set`** é mais rápido do que `List` porque não exige o gerenciamento de índices. O Hibernate não precisa criar ou manter índices ou fazer ordens específicas de busca, já que os elementos são apenas armazenados sem qualquer ordem.
+   - **`List`** envolve um controle extra de índice, o que pode levar a **consultas mais complexas** ou a maior sobrecarga para manter a ordem dos elementos.
+   - **Cenário de Desempenho:** Em um cenário de relacionamento `ManyToMany`, o `Set` pode ser mais eficiente para grandes quantidades de dados, já que não há necessidade de uma estrutura de índice extra. O `List`, por sua vez, pode ser mais lento por causa dessa estrutura adicional.
+
+2. **`Set` vs. `Map`:**
+   - **`Set`** não precisa armazenar a chave e o valor, como acontece em um `Map`. Isso significa que a sobrecarga de mapeamento em um `Map` é geralmente mais alta, especialmente se você tiver que realizar `JOINs` adicionais ou ter um relacionamento mais complexo.
+   - **`Map`** pode ser mais eficiente quando você precisa associar dados a uma chave, mas, em termos de desempenho, isso pode ser mais caro em termos de leitura e escrita de dados, especialmente se você precisar de operações de busca baseadas na chave.
+   - **Cenário de Desempenho:** Se o relacionamento entre as entidades for simples e você precisar apenas de um conjunto de dados sem chaves específicas, o `Set` é mais eficiente. Caso contrário, quando uma associação de chave-valor for necessária, o `Map` pode ser mais adequado, mas com a trade-off de maior sobrecarga.
+
+### Considerações de Desempenho
+
+- **Consulta e Recuperação de Dados:** Se você tiver um grande número de registros, a estratégia de **fetching** (como **Lazy** vs **Eager**) pode afetar o desempenho. Para **Lazy Loading**, o Hibernate vai buscar os dados associados **somente quando necessário**, enquanto **Eager Loading** pode resultar em consultas mais pesadas com **JOINs** ou múltiplas consultas ao banco de dados.
+  
+- **Cache de Nível 1 e 2:** O uso de caches de **nível 1** (sessão) e **nível 2** (acima da sessão) pode afetar o desempenho ao acessar dados que já foram carregados anteriormente, independentemente do tipo de coleção que você estiver usando.
+
+- **Tamanho das Coleções:** Para **grandes coleções**, como aquelas mapeadas com `List` ou `Set`, o **uso de índices** nas tabelas de associação pode ser crucial para otimizar o desempenho das consultas, especialmente quando você está lidando com muitas entidades relacionadas.
+
+### Conclusão
+
+- **`Set`** tende a ser o mais eficiente em termos de desempenho devido à falta de ordenação e sobrecarga de índice.
+- **`List`** tem um desempenho mais lento por causa da necessidade de manter a ordem, o que pode envolver operações de índice extras.
+- **`Map`** pode ser mais caro em termos de desempenho por causa do mapeamento de chave-valor e, em casos de relacionamentos complexos, pode envolver **JOINs** adicionais.
+  
+O uso de **Lazy Loading** ou **Eager Loading**, o **tamanho das coleções** e a necessidade de **consultas complexas** são fatores importantes a considerar ao escolher o tipo de coleção no Hibernate.
+
+O impacto de **Lazy Loading** e **Eager Loading** no desempenho de uma aplicação utilizando Hibernate depende diretamente de como os dados relacionados são carregados e do tipo de coleção sendo utilizada (como `List`, `Set`, `Map`, etc.). Esses dois modos de carregamento determinam como o Hibernate lida com as associações de entidades, ou seja, como ele carrega as coleções de dados associadas a uma entidade quando a consulta é realizada.
+
+### **Lazy Loading** e **Eager Loading**
+
+- **Lazy Loading**: Significa que o Hibernate carrega as associações **somente quando necessário**. Ou seja, quando você acessa um atributo de uma entidade que está marcado para lazy loading (carregamento preguiçoso), o Hibernate irá fazer uma nova consulta ao banco de dados para carregar esses dados. Isso é útil para **evitar consultas desnecessárias**, especialmente se você não precisa das coleções imediatamente.
+
+- **Eager Loading**: Significa que o Hibernate carrega as associações **imediatamente** junto com a consulta principal, ou seja, no momento em que você carrega a entidade, todas as coleções associadas também são carregadas. Isso pode resultar em **consultas maiores e mais pesadas**, já que o Hibernate precisa carregar os dados de todas as associações de uma vez.
+
+### Impacto do **Lazy Loading** e **Eager Loading** em Coleções
+
+#### 1. **`List` (Lista Ordenada)**
+   - **Lazy Loading**: Com **Lazy Loading** em uma `List`, o Hibernate só irá carregar a coleção (lista) quando você acessar o método que a retorna (por exemplo, `getItems()`). Se você tiver uma grande lista e acessar ela várias vezes, isso pode causar várias consultas ao banco de dados, o que pode ser um problema de desempenho se você acessar a lista muitas vezes.
+     - **Impacto**: Muitas consultas subsequentes podem levar a um grande número de **consultas N+1** (quando você carrega a entidade principal e depois uma consulta separada para cada item da lista).
+   - **Eager Loading**: Com **Eager Loading**, o Hibernate irá carregar todos os itens da lista no momento em que a entidade principal for carregada. Isso pode ser mais eficiente se você precisar de toda a lista ao mesmo tempo, evitando várias consultas, mas pode sobrecarregar a consulta, especialmente se a lista contiver muitos itens.
+     - **Impacto**: A consulta inicial será mais pesada e pode retornar muitos dados desnecessários caso você não precise de todos os itens da lista.
+
+#### 2. **`Set` (Conjunto)**
+   - **Lazy Loading**: Em um `Set`, o Hibernate carregará a coleção de elementos somente quando você acessar a coleção pela primeira vez. Isso é eficiente porque evita o carregamento de dados desnecessários, especialmente se o número de elementos no `Set` for grande e você não precisar de todos os elementos de imediato.
+     - **Impacto**: Embora seja eficiente em termos de **uso de memória e tempo de resposta inicial**, o acesso à coleção no futuro pode gerar **consultas adicionais** ao banco de dados, o que pode ser um problema em cenários de alta carga e grandes volumes de dados.
+   - **Eager Loading**: Com **Eager Loading**, o Hibernate carrega todos os elementos do `Set` na mesma consulta inicial. Isso pode ser útil quando você sabe que precisará de todos os elementos, mas pode resultar em sobrecarga se o conjunto for muito grande ou se você não precisar de todos os dados logo de cara.
+     - **Impacto**: Pode sobrecarregar a consulta inicial e prejudicar o desempenho em cenários onde a coleção contém muitos itens desnecessários.
+
+#### 3. **`Map` (Chave-Valor)**
+   - **Lazy Loading**: Para um `Map`, o Hibernate só irá carregar os valores do `Map` quando você acessar a coleção. Isso pode ser útil para evitar sobrecarga, mas o `Map` pode envolver múltiplas chaves e valores, o que pode resultar em consultas adicionais dependendo da implementação.
+     - **Impacto**: Se você acessar frequentemente as chaves e valores de forma indiscriminada, isso pode gerar muitas consultas, o que afeta o desempenho.
+   - **Eager Loading**: Com **Eager Loading**, o `Map` é carregado junto com a entidade principal, incluindo todos os pares chave-valor. Isso pode resultar em um desempenho mais consistente quando você precisa de todos os dados, mas também pode ser ineficiente em termos de tempo de execução e uso de memória.
+     - **Impacto**: O carregamento de todos os pares chave-valor pode ser extremamente ineficiente se o `Map` contiver muitos dados que você não vai precisar no momento.
+
+### **Efeitos no Desempenho**
+
+#### **Lazy Loading**
+- **Vantagens**:
+  - **Consultas menores**: Carrega os dados sob demanda, o que pode ser mais eficiente se você não precisar acessar as coleções imediatamente.
+  - **Menos dados carregados**: Apenas os dados necessários são carregados da base de dados.
+- **Desvantagens**:
+  - **Consultas N+1**: Se você acessar várias coleções relacionadas dentro de um loop ou em um cenário de múltiplas entidades relacionadas, você pode acabar executando várias consultas adicionais ao banco de dados, o que impacta negativamente o desempenho.
+  - **Complexidade adicional**: Você precisa ter cuidado com o **LazyInitializationException**, que ocorre quando a sessão é fechada antes que o Hibernate possa carregar a coleção `lazy`.
+
+#### **Eager Loading**
+- **Vantagens**:
+  - **Consultas mais rápidas**: Quando você sabe que precisará de todas as coleções de uma vez, o **Eager Loading** evita consultas adicionais ao carregar todos os dados de uma vez.
+  - **Evita N+1**: Como os dados são carregados de uma vez, o problema de **N+1 queries** é evitado.
+- **Desvantagens**:
+  - **Consultas pesadas**: Se você carregar muitas coleções ou uma grande quantidade de dados desnecessários, isso pode resultar em uma consulta muito pesada, o que impacta o tempo de resposta e o uso de memória.
+  - **Desempenho e uso de memória**: A sobrecarga de carregar muitos dados de uma vez pode resultar em um uso de memória maior e diminuir a performance em cenários com grandes volumes de dados.
+
+### **Considerações de Desempenho em Diferentes Cenários**
+
+1. **Consultas com poucas associações**:
+   - Se você tem poucas associações ou coleções pequenas, o **Eager Loading** pode ser eficiente, pois você carrega tudo de uma vez e evita múltiplas consultas. No entanto, se a quantidade de dados for significativa, o **Lazy Loading** pode ser mais eficiente.
+
+2. **Consultas com muitas associações**:
+   - Se você estiver lidando com muitas associações, especialmente coleções grandes, o **Lazy Loading** será mais vantajoso em termos de desempenho, porque você evita carregar todos os dados de uma vez. No entanto, isso pode gerar **N+1 queries**, o que deve ser tratado com **fetch joins** ou **DTOs** para mitigar o problema.
+
+3. **Exibição de dados na interface**:
+   - Se você precisa de todos os dados de uma vez (por exemplo, na exibição de uma página com todas as coleções), o **Eager Loading** pode ser uma boa opção, pois evita consultas adicionais. Caso contrário, o **Lazy Loading** pode ser mais eficiente, especialmente em **situações de navegação e paginação**.
+
+### Conclusão
+
+- **Lazy Loading** é geralmente mais eficiente quando você tem grandes volumes de dados e não precisa carregar todas as coleções de uma vez, mas você precisa tomar cuidado com o problema de **consultas N+1** e **LazyInitializationException**.
+- **Eager Loading** pode ser útil quando você sabe que precisa de todos os dados de uma vez, mas pode causar **consultas pesadas** e **uso excessivo de memória**, especialmente quando há grandes coleções.
+
+A escolha entre **Lazy Loading** e **Eager Loading** deve ser feita considerando o **cenário específico de uso** e as **necessidades de desempenho** da aplicação.
