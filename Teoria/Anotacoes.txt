@@ -30,3 +30,49 @@ Annotations:
 
 @AssertTrue @AssertFalse: Restringe que o atributo precisa ser booleano True ou False.
 
+### Explicação das Annotations `@Validated` e `@JsonView`
+
+No seu código, as annotations `@Validated` e `@JsonView` são utilizadas para validar e controlar a serialização/desserialização dos dados, respectivamente.
+
+---
+
+### 📌 **`@Validated`**
+- Faz parte do **Spring** (`org.springframework.validation.annotation.Validated`).
+- Permite validar objetos com **Bean Validation** (JSR-303/JSR-380), como `@NotBlank`, `@Size`, `@Email`, entre outras.
+- Aceita **grupos de validação**, que permitem definir regras de validação diferentes para diferentes cenários.
+
+#### **No seu código**
+```java
+@RequestBody @Validated(UserRecordDto.UserView.UserPut.class)
+UserRecordDto userRecordDto
+```
+Aqui, `@Validated(UserRecordDto.UserView.UserPut.class)` diz que apenas as validações associadas ao grupo `UserView.UserPut.class` devem ser aplicadas. Isso significa que, ao chamar esse endpoint, apenas os campos validados com esse grupo (por exemplo, `fullName` e `phoneNumber`) serão checados.
+
+---
+
+### 📌 **`@JsonView`**
+- Faz parte do **Jackson** (`com.fasterxml.jackson.annotation.JsonView`).
+- Controla **quais campos serão serializados** (retornados na resposta) ou **desserializados** (recebidos no request).
+- Funciona com **interfaces vazias** para definir diferentes "visões" (`views`) de um mesmo DTO.
+
+#### **No seu código**
+```java
+@JsonView(UserView.RegistrationPost.class)
+String username;
+```
+Isso significa que o campo `username` **só será incluído na resposta se a view `UserView.RegistrationPost.class` estiver sendo usada**.
+
+Da mesma forma, no método `updateUser`:
+```java
+@RequestBody @JsonView(UserRecordDto.UserView.UserPut.class)
+UserRecordDto userRecordDto
+```
+Isso indica que **apenas os campos marcados com `UserPut` serão desserializados do JSON enviado no request**.
+
+---
+
+### 🚀 **Resumindo**
+1. **`@Validated`** → Aplica **validações condicionais** dependendo do grupo especificado no request.
+2. **`@JsonView`** → Controla **quais campos aparecem na requisição e resposta**, dependendo da view definida.
+
+Isso permite maior flexibilidade, garantindo que **diferentes endpoints apliquem regras e retornem apenas os dados necessários**.
