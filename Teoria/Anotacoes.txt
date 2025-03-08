@@ -7,6 +7,7 @@ password postgrees: 586910
 - Em uma aplicação que também possui view, o DispatcherServlet utiliza o ViewResolver para reconhecer a view determinada da request.
 - Tomcat: ServletContainer (Spring Web, encapsula o funcionamento).
 
+-- VALIDAÇÕES --
 
 Jakarta Bean Validation
 
@@ -76,3 +77,54 @@ Isso indica que **apenas os campos marcados com `UserPut` serão desserializados
 2. **`@JsonView`** → Controla **quais campos aparecem na requisição e resposta**, dependendo da view definida.
 
 Isso permite maior flexibilidade, garantindo que **diferentes endpoints apliquem regras e retornem apenas os dados necessários**.
+
+
+-- JPA,  SPRING DATA JPA e HIBERNATE --
+
+Não exatamente. **Spring Data JPA e Hibernate não são duas abstrações do JPA**, mas sim tecnologias diferentes que interagem com ele de maneiras distintas.
+
+---
+
+## 🔹 **JPA (Java Persistence API)**
+JPA é apenas uma **especificação** (ou seja, um conjunto de interfaces e regras) para gerenciamento de persistência em Java.  
+Ele define como as entidades devem ser mapeadas para o banco de dados, mas **não implementa nada por si só**.
+
+👉 Para usar JPA, é necessário um **provedor de persistência** que implemente essa especificação. É aí que entra o Hibernate.
+
+---
+
+## 🔹 **Hibernate**
+O **Hibernate** é a implementação **mais popular** do JPA. Ele fornece:
+✔ Um provedor de persistência JPA.  
+✔ Recursos extras além do que o JPA especifica.  
+✔ Funcionalidades avançadas como caching, lazy loading otimizado e query caching.
+
+Ou seja, **Hibernate é um ORM (Object-Relational Mapping) que implementa JPA**.  
+
+➡ Você pode usar Hibernate diretamente sem JPA, mas o ideal é usar JPA para manter seu código mais genérico e desacoplado da implementação.
+
+---
+
+## 🔹 **Spring Data JPA**
+O **Spring Data JPA** é uma **abstração sobre o JPA** que simplifica o uso do JPA/Hibernate no Spring. Ele fornece:
+✔ Implementação automática de repositórios (`JpaRepository`, `CrudRepository`).  
+✔ Métodos de consulta personalizados sem precisar escrever SQL (`findByEmail`, `findByNameContaining`).  
+✔ Integração fácil com o **Spring Boot**.  
+✔ Redução drástica da quantidade de código boilerplate.
+
+⚡ **Ou seja:** O Spring Data JPA usa o JPA (e, indiretamente, o Hibernate) para facilitar a persistência.
+
+---
+
+## 🎯 **Resumindo a Diferença**
+| Tecnologia        | O que é? | Implementação |
+|------------------|---------|---------------|
+| **JPA**          | Especificação (interfaces e regras) | Não tem implementação própria |
+| **Hibernate**    | ORM que implementa JPA | Sim, é um provedor de persistência |
+| **Spring Data JPA** | Abstração do JPA dentro do Spring | Usa JPA e um provedor como Hibernate |
+
+🔹 **JPA** define as regras.  
+🔹 **Hibernate** implementa essas regras.  
+🔹 **Spring Data JPA** facilita o uso do JPA e do Hibernate no Spring.
+
+Se estiver usando **Spring Boot**, o Hibernate é o provedor padrão do Spring Data JPA, então ao configurar um banco, ele já será utilizado automaticamente. 🚀
