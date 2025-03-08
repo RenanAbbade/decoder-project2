@@ -874,3 +874,152 @@ public static Specification<LessonModel> lessonModuleId(final UUID moduleId) {
 - **Uso de `@Spec` e `@And`**: Permite que a API forneça buscas dinâmicas sem a necessidade de criar queries manuais no repositório.
 
 Essa abordagem torna a aplicação **mais flexível**, facilitando a criação de buscas avançadas de maneira declarativa e reutilizável. 🚀
+
+-- Paginação global --
+
+### 📌 **Explicação da Anotação `@EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)`**  
+
+A anotação `@EnableSpringDataWebSupport` pertence ao **Spring Data** e serve para ativar suporte adicional para integração entre Spring MVC e Spring Data.  
+
+🔍 **No caso específico:**  
+```java
+@EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)
+public class ResolverConfig implements WebMvcConfigurer {
+```
+A opção `pageSerializationMode = VIA_DTO` define que a serialização de **paginação (`Page<T>`)** será feita através de um **DTO (Data Transfer Object)** em vez do formato padrão.
+
+---
+
+## 🔹 **O que `@EnableSpringDataWebSupport` faz?**
+1. **Habilita suporte automático para paginação e ordenação em requisições REST.**  
+   - Permite que a API aceite parâmetros `page`, `size`, `sort`, etc., automaticamente.  
+   - Exemplo:  
+     ```
+     GET /courses?page=0&size=10&sort=name,asc
+     ```
+2. **Facilita a conversão de Strings para entidades em controladores.**  
+   - Se um controlador recebe um ID e precisa convertê-lo em uma entidade, o Spring faz isso automaticamente.  
+3. **Melhora o suporte a `Page<T>` e `Slice<T>` no retorno de APIs REST.**  
+
+---
+
+## 🔹 **O que significa `pageSerializationMode = VIA_DTO`?**
+Por padrão, quando uma API retorna uma `Page<T>`, o Spring serializa toda a estrutura da `Page`, incluindo metadados como:
+```json
+{
+  "content": [...], 
+  "pageable": {...}, 
+  "totalElements": 100, 
+  "totalPages": 10, 
+  "last": false
+}
+```
+Isso pode expor **dados desnecessários** para o cliente.
+
+✅ **Com `VIA_DTO`, o Spring permite personalizar essa saída!**  
+Em vez de retornar toda a estrutura da `Page`, você pode definir um **DTO customizado** que será usado para serializar os dados da resposta.
+
+---
+
+## 🔹 **Exemplo de Uso**
+Imagine que temos um **serviço de cursos**, e queremos retornar apenas informações essenciais na resposta.
+
+### **1️⃣ DTO Personalizado**
+```java
+public class CourseDTO {
+    private UUID id;
+    private String name;
+    private String level;
+
+    public CourseDTO(CourseModel course) {
+        this.id = course.getId();
+        this.name = course.getName();
+        this.level = course.getCourseLevel();
+    }
+
+    // Getters e Setters
+}
+```
+
+### **2️⃣ Método no Controller**
+```java
+@GetMapping
+public ResponseEntity<Page<CourseDTO>> getAllCourses(Pageable pageable) {
+    Page<CourseModel> courses = courseService.findAll(pageable);
+    
+    // Converte para DTO antes de retornar
+    Page<CourseDTO> dtoPage = courses.map(CourseDTO::new);
+    
+    return ResponseEntity.ok(dtoPage);
+}
+```
+✅ **Agora, a resposta conterá apenas os campos que queremos no `CourseDTO`.**
+
+---
+
+## 🔹 **Resumo**
+- `@EnableSpringDataWebSupport` **ativa suporte avançado do Spring Data para integração com Spring MVC.**
+- **Habilita paginação e ordenação automática** via parâmetros de URL.
+- `pageSerializationMode = VIA_DTO` **permite retornar uma versão simplificada da `Page<T>` usando um DTO.**
+- **Evita expor detalhes desnecessários** na resposta da API REST.
+
+🛠️ **Melhora a flexibilidade e eficiência da API, reduzindo o tamanho das respostas e aumentando o controle sobre os dados expostos.** 🚀
+
+
+-- WebMvcConfigurer -- 
+
+### 📌 **Propósito da Classe `ResolverConfig` implementando `WebMvcConfigurer`**  
+
+A classe `ResolverConfig` que implementa `WebMvcConfigurer` é usada para **configurar o Spring MVC** sem a necessidade de estender `WebMvcConfigurerAdapter` (que foi **descontinuado** no Spring 5).
+
+---
+
+## 🔹 **O que `WebMvcConfigurer` faz?**  
+A interface `WebMvcConfigurer` permite **personalizar o comportamento padrão do Spring MVC**, sem substituir a configuração automática do Spring Boot.  
+
+### **Principais usos**
+- **Adicionar interceptadores** (`HandlerInterceptor`).
+- **Configurar CORS** (Cross-Origin Resource Sharing).
+- **Customizar a serialização e desserialização JSON**.
+- **Definir conversores de formatos de dados** (como JSON → Objeto).
+- **Registrar resolvers de argumentos** (como injeção de usuário autenticado).
+- **Personalizar a resolução de páginas e templates** (como Thymeleaf ou JSP).
+
+---
+
+## 🔹 **Exemplo da Classe `ResolverConfig`**
+```java
+@Configuration
+@EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)
+public class ResolverConfig implements WebMvcConfigurer {
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOrigins("https://meusite.com")
+                .allowedMethods("GET", "POST", "PUT", "DELETE")
+                .allowCredentials(true);
+    }
+
+    @Override
+    public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
+        converters.add(new MappingJackson2HttpMessageConverter());
+    }
+}
+```
+
+---
+
+## 🔹 **Explicação do Exemplo**
+1. **`@Configuration`** → Indica que esta classe é uma classe de configuração do Spring.  
+2. **`@EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)`** → Ativa suporte para paginação e ordenação no Spring Data (como visto antes).  
+3. **`addCorsMappings`** → Configura **CORS**, permitindo requisições de origens específicas.  
+4. **`configureMessageConverters`** → Define conversores para transformar objetos Java em JSON automaticamente.
+
+---
+
+## 🔹 **Resumo**
+A classe `ResolverConfig` implementa `WebMvcConfigurer` para **personalizar o comportamento do Spring MVC**, sem afetar a configuração automática do Spring Boot.  
+
+✅ **Permite adicionar CORS, customizar JSON, configurar interceptadores e muito mais.**  
+🚀 **Útil para ajustar a API conforme a necessidade sem sobrescrever as configurações padrão.**
