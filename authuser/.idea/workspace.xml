@@ -4,7 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="27ee9121-94b5-4631-93a0-981bf0b54570" name="Changes" comment="Specification filter and hateoas">
+    <list default="true" id="27ee9121-94b5-4631-93a0-981bf0b54570" name="Changes" comment="Correção da propriedade senha">
+      <change afterPath="$PROJECT_DIR$/../course/course/src/main/java/com/ead/course/model/CourseModel.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../course/course/src/main/resources/application.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dbnavigator.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dbnavigator.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../course/course/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../course/course/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../course/course/src/main/resources/application.properties" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/../notification/notification" beforeDir="false" afterPath="$PROJECT_DIR$/../notification/notification" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -15,21 +21,21 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "RenanAbbade"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;RenanAbbade&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/RenanAbbade/decoder-project2.git",
-    "accountId": "b90cd243-15e0-4ede-b118-456da9a6c857"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/RenanAbbade/decoder-project2.git&quot;,
+    &quot;accountId&quot;: &quot;b90cd243-15e0-4ede-b118-456da9a6c857&quot;
   }
-}]]></component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 6
-}]]></component>
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 6
+}</component>
   <component name="ProjectId" id="2rY1BlRUkL475steF91xbbVQHwk" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -37,12 +43,40 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Application.AuthuserApplication.executor": "Run",
+    "Maven.authuser [clean,install].executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "main",
     "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Git/decoder-project2/course",
     "settings.editor.selected.configurable": "reference.settings.project.maven.importing"
   }
 }]]></component>
+  <component name="RunAnythingCache">
+    <option name="myCommands">
+      <command value="mvn clean" />
+    </option>
+  </component>
+  <component name="RunManager">
+    <configuration name="AuthuserApplication" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="com.ead.authuser.AuthuserApplication" />
+      <module name="authuser (1)" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.ead.authuser.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Application.AuthuserApplication" />
+      </list>
+    </recent_temporary>
+  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
@@ -68,12 +102,21 @@
       <option name="project" value="LOCAL" />
       <updated>1736721791762</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Correção da propriedade senha">
+      <option name="closed" value="true" />
+      <created>1741458024174</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1741458024174</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="CORS" />
     <MESSAGE value="Specification filter and hateoas" />
-    <option name="LAST_COMMIT_MESSAGE" value="Specification filter and hateoas" />
+    <MESSAGE value="Correção da propriedade senha" />
+    <option name="LAST_COMMIT_MESSAGE" value="Correção da propriedade senha" />
   </component>
 </project>
