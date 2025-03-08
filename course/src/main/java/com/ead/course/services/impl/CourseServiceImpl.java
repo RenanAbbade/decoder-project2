@@ -36,8 +36,8 @@ public class CourseServiceImpl implements CourseService {
         this.lessonRepository = lessonRepository;
     }
 
-    @Transactional
-    @Override
+    @Transactional //Garantir que todos os processos sejam realizados com sucesso, se não ocorre rollback
+    @Override //Deleção em cascata para o contexto de @OneToMany @ManyToOn  Course 1 <-> * Module 1<->* lessons
     public void delete(CourseModel courseModel) {
         List<ModuleModel> moduleModelList = moduleRepository.findAllModulesIntoCourse(courseModel.getCourseId());
         if (!moduleModelList.isEmpty()){
