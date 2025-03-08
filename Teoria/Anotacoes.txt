@@ -128,3 +128,145 @@ O **Spring Data JPA** é uma **abstração sobre o JPA** que simplifica o uso do
 🔹 **Spring Data JPA** facilita o uso do JPA e do Hibernate no Spring.
 
 Se estiver usando **Spring Boot**, o Hibernate é o provedor padrão do Spring Data JPA, então ao configurar um banco, ele já será utilizado automaticamente. 🚀
+
+No **Hibernate** e **Spring Data JPA**, há várias formas de realizar consultas no banco de dados. A escolha da abordagem depende da complexidade da consulta e do nível de abstração desejado.  
+
+---
+
+## 🔹 **1. Consultas Usando Métodos de Interface (`Derived Query Methods`)**  
+O **Spring Data JPA** permite definir consultas diretamente no nome do método da interface do repositório.  
+
+### ✅ Exemplo:
+```java
+public interface UserRepository extends JpaRepository<User, Long> {
+    List<User> findByUsername(String username);
+    List<User> findByEmailContaining(String emailPart);
+    List<User> findByCreatedAtAfter(LocalDateTime date);
+}
+```
+📌 **Como funciona?** O Spring analisa o nome do método, gera automaticamente a consulta e a executa.  
+✔ Fácil de usar, mas limitado a consultas mais simples.  
+
+---
+
+## 🔹 **2. Consultas Usando `@Query` (JPQL ou SQL Nativo)**
+Para consultas mais complexas, podemos usar **JPQL** (Java Persistence Query Language) ou SQL nativo.
+
+### ✅ **JPQL (Java Persistence Query Language)**
+JPQL é semelhante ao SQL, mas opera sobre **entidades e atributos**, não sobre tabelas e colunas.  
+
+```java
+@Query("SELECT u FROM User u WHERE u.email = :email")
+User findByEmail(@Param("email") String email);
+```
+
+### ✅ **SQL Nativo**
+Se precisar de uma consulta mais otimizada diretamente no banco, pode usar **SQL puro**:  
+
+```java
+@Query(value = "SELECT * FROM users WHERE email = :email", nativeQuery = true)
+User findByEmailNative(@Param("email") String email);
+```
+
+📌 **JPQL é mais portátil**, enquanto **SQL nativo pode ser mais performático** dependendo do banco de dados.
+
+---
+
+## 🔹 **3. Consultas Usando `EntityManager` e `Criteria API`**
+Se precisar de mais flexibilidade, pode usar o `EntityManager` para criar queries dinâmicas.  
+
+### ✅ **Usando `EntityManager` (JPQL)**
+```java
+@Autowired
+private EntityManager entityManager;
+
+public List<User> findUsersCreatedAfter(LocalDateTime date) {
+    String jpql = "SELECT u FROM User u WHERE u.createdAt > :date";
+    return entityManager.createQuery(jpql, User.class)
+                        .setParameter("date", date)
+                        .getResultList();
+}
+```
+
+### ✅ **Usando `Criteria API` (Consulta Dinâmica)**
+A Criteria API permite construir consultas dinamicamente, útil para filtros flexíveis.  
+
+```java
+public List<User> findUsersByCriteria(String username, String email) {
+    CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+    CriteriaQuery<User> cq = cb.createQuery(User.class);
+    Root<User> user = cq.from(User.class);
+
+    List<Predicate> predicates = new ArrayList<>();
+    if (username != null) {
+        predicates.add(cb.equal(user.get("username"), username));
+    }
+    if (email != null) {
+        predicates.add(cb.like(user.get("email"), "%" + email + "%"));
+    }
+    
+    cq.where(predicates.toArray(new Predicate[0]));
+    return entityManager.createQuery(cq).getResultList();
+}
+```
+
+📌 **Vantagem da Criteria API** → Boa para **construção dinâmica** de consultas sem manipular strings manualmente.
+
+---
+
+## 🔹 **4. Consultas Usando `Specification` (Spring Data JPA)**
+Para consultas dinâmicas e reutilizáveis, o Spring oferece a interface `Specification<T>`, baseada na **Criteria API**.
+
+### ✅ **Exemplo de `Specification`**
+```java
+public class UserSpecification {
+    public static Specification<User> hasUsername(String username) {
+        return (root, query, cb) -> cb.equal(root.get("username"), username);
+    }
+
+    public static Specification<User> emailContains(String email) {
+        return (root, query, cb) -> cb.like(root.get("email"), "%" + email + "%");
+    }
+}
+```
+Agora podemos combinar as condições dinamicamente:
+
+```java
+List<User> users = userRepository.findAll(Specification
+        .where(UserSpecification.hasUsername("john"))
+        .and(UserSpecification.emailContains("@gmail.com")));
+```
+📌 **Ótimo para filtros dinâmicos e complexos!**  
+
+---
+
+## 🔹 **5. Consultas Usando `NamedQuery`**
+Podemos definir queries diretamente na entidade.
+
+### ✅ **Exemplo**
+```java
+@Entity
+@NamedQuery(name = "User.findByEmail", query = "SELECT u FROM User u WHERE u.email = :email")
+public class User { ... }
+```
+E no repositório:
+```java
+User user = userRepository.findByEmail("test@example.com");
+```
+
+📌 **Útil para reuso de queries, mas menos flexível que `@Query` ou Criteria API.**
+
+---
+
+## 🎯 **Resumo das Formas de Consulta**
+| Método | Características | Melhor para |
+|--------|---------------|-------------|
+| **Derived Queries** (`findByUsername`) | Baseado no nome do método, sem SQL | Consultas simples |
+| **JPQL (`@Query`)** | Usa linguagem baseada em entidades | Consultas intermediárias |
+| **SQL Nativo (`@Query(nativeQuery = true)`)** | SQL puro, mais performático | Consultas específicas do banco |
+| **EntityManager (JPQL ou Criteria API)** | Total controle da query | Consultas complexas e dinâmicas |
+| **Specification API** | Combina filtros dinamicamente | Filtros avançados e reutilizáveis |
+| **NamedQuery** | Definido na entidade, reutilizável | Queries fixas |
+
+Se precisar de algo **rápido e simples**, `Derived Queries` e `@Query` são boas opções.  
+Se precisar de algo **dinâmico**, `Criteria API` ou `Specification` são mais adequados. 🚀
