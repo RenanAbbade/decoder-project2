@@ -270,3 +270,103 @@ User user = userRepository.findByEmail("test@example.com");
 
 Se precisar de algo **rápido e simples**, `Derived Queries` e `@Query` são boas opções.  
 Se precisar de algo **dinâmico**, `Criteria API` ou `Specification` são mais adequados. 🚀
+
+
+
+--  API Specification -- 
+
+Esse código usa a **Specification API** do Spring Data JPA, combinada com a biblioteca **Spring Specification Argument Resolver**, para permitir que a API filtre usuários dinamicamente com base nos parâmetros enviados na requisição.  
+
+Vamos analisar os trechos de código:
+
+---
+
+## **1️⃣ Método `getAllUsers`**
+```java
+@GetMapping
+public ResponseEntity<Page<UserModel>> getAllUsers(SpecificationTemplate.UserSpec spec, Pageable pageable){
+    Page<UserModel> userModelPage = userService.findAll(spec, pageable);
+    
+    if(!userModelPage.isEmpty()){
+        for(UserModel user : userModelPage.toList()){
+            user.add(linkTo(methodOn(UserController.class).getOneUser(user.getUserId())).withSelfRel());
+        }
+    }
+    
+    return ResponseEntity.status(HttpStatus.OK).body(userModelPage);
+}
+```
+### 🔹 O que esse método faz?
+- **Recebe uma requisição `GET` para buscar usuários**.
+- **Aceita filtros dinâmicos** via `SpecificationTemplate.UserSpec` (explicado na próxima seção).
+- **Aceita paginação** via `Pageable` (Spring Data JPA suporta paginação automática).
+- **Chama `userService.findAll(spec, pageable)`**, que retorna os usuários filtrados e paginados.
+- **Adiciona links HATEOAS** aos usuários para facilitar navegação na API REST.
+- **Retorna os resultados com código HTTP 200 (OK)**.
+
+---
+
+## **2️⃣ `SpecificationTemplate` - Criando Filtros Dinâmicos**
+```java
+public class SpecificationTemplate {
+
+    @And({
+            @Spec(path = "userType", spec = Equal.class),
+            @Spec(path = "userStatus", spec = Equal.class),
+            @Spec(path = "email", spec = Like.class),
+            @Spec(path = "username", spec = Like.class),
+            @Spec(path = "fullName", spec = LikeIgnoreCase.class)
+    })
+    public interface UserSpec extends Specification<UserModel> {}
+}
+```
+
+### 🔹 O que essa classe faz?
+Ela define um conjunto de **especificações dinâmicas** para que os usuários possam ser filtrados através de parâmetros na URL.
+
+- **`@And({...})`** → Indica que todas as condições dentro dela podem ser combinadas.
+- **`@Spec(path = "...", spec = Tipo.class)`** → Define a regra de filtragem para cada campo:
+  - `Equal.class` → Busca valores **exatamente iguais** (`userType`, `userStatus`).
+  - `Like.class` → Busca valores **contendo um trecho do texto** (`email`, `username`).
+  - `LikeIgnoreCase.class` → Busca valores **contendo um trecho do texto, ignorando maiúsculas/minúsculas** (`fullName`).
+
+### 🔹 Como usar na requisição?
+Como essa interface estende `Specification<UserModel>`, o Spring Data JPA consegue processar automaticamente os parâmetros da URL para realizar as consultas.
+
+✅ **Exemplo de requisição GET com filtros dinâmicos:**
+```http
+GET /users?username=john&email=@gmail.com
+```
+🔹 Isso resultaria em uma consulta SQL equivalente a:
+```sql
+SELECT * FROM users 
+WHERE username LIKE '%john%' 
+AND email LIKE '%@gmail.com%'
+```
+
+---
+
+## **3️⃣ Como Funciona o `findAll(spec, pageable)`?**
+A chamada `userService.findAll(spec, pageable)` dentro do método `getAllUsers` retorna os usuários filtrados e paginados.
+
+### **No `UserService`:**
+```java
+public Page<UserModel> findAll(Specification<UserModel> spec, Pageable pageable) {
+    return userRepository.findAll(spec, pageable);
+}
+```
+### **No `UserRepository`:**
+```java
+public interface UserRepository extends JpaRepository<UserModel, UUID>, JpaSpecificationExecutor<UserModel> {}
+```
+📌 **A interface `JpaSpecificationExecutor` permite consultas dinâmicas usando `Specification<T>`**.
+
+---
+
+## **🔥 Resumo Geral**
+✔ **Filtragem Dinâmica**: Os usuários podem ser filtrados por qualquer combinação de parâmetros na URL.  
+✔ **Uso de Specification API**: Permite consultas flexíveis sem necessidade de escrever queries SQL.  
+✔ **Paginação Automática**: O `Pageable` facilita a implementação de paginação.  
+✔ **HATEOAS**: Links são adicionados a cada usuário, facilitando a navegação na API REST.  
+
+Esse padrão é muito útil para construir APIs REST escaláveis e flexíveis. 🚀
