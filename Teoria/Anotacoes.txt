@@ -767,3 +767,110 @@ O campo `modules` da entidade é uma coleção **"um para muitos"** (`@OneToMany
 - A anotação `@OnDelete(action = OnDeleteAction.CASCADE)` garante que, quando um `Course` for excluído, todos os `ModuleModel` associados também sejam excluídos automaticamente.
 
 Essas anotações ajudam a controlar o comportamento de carregamento de dados e a integridade do banco de dados em um relacionamento entre entidades, além de melhorar a performance ao evitar consultas desnecessárias e garantir a consistência dos dados.
+
+-- Filtros avançados com Specification --
+
+Esse código define uma classe chamada `SpecificationTemplate`, que contém especificações (`Specification<T>`) para consultas dinâmicas no Spring Data JPA, utilizando a biblioteca **Spring Data JPA Specifications** e o **Spec by Example (SPECS)** do pacote `net.kaczmarzyk.spring.data.jpa.domain`.  
+
+O objetivo dessa abordagem é permitir que consultas ao banco de dados sejam feitas de maneira flexível, aplicando filtros dinamicamente sem precisar escrever consultas SQL manualmente.
+
+---
+
+## 📌 **Explicação do Código**
+
+### 🔹 **Interfaces com `@Spec` e `@And`**
+Essas interfaces servem para definir critérios de busca que podem ser aplicados dinamicamente pelo Spring Data JPA.
+
+```java
+@And({
+    @Spec(path = "courseLevel", spec = Equal.class),
+    @Spec(path = "courseStatus", spec = Equal.class),
+    @Spec(path = "name", spec = LikeIgnoreCase.class),
+    @Spec(path = "userInstructor", spec = Equal.class)
+})
+public interface CourseSpec extends Specification<CourseModel> {}
+```
+- `@And({...})` → Combina múltiplas especificações usando **AND** lógico.
+- `@Spec(...)` → Define um critério de busca com base em um campo específico.
+- `Equal.class` → Compara se o valor do campo é **igual** ao parâmetro da consulta.
+- `LikeIgnoreCase.class` → Aplica um filtro de **LIKE** ignorando diferenças entre maiúsculas e minúsculas.
+
+✅ **Essa interface permite pesquisar cursos (`CourseModel`) filtrando por:**
+  - `courseLevel` (**igualdade**)
+  - `courseStatus` (**igualdade**)
+  - `name` (**LIKE ignorando maiúsculas e minúsculas**)
+  - `userInstructor` (**igualdade**)
+
+---
+
+```java
+@Spec(path = "title", spec = LikeIgnoreCase.class)
+public interface ModuleSpec extends Specification<ModuleModel> {}
+```
+- Especificação para **módulos (`ModuleModel`)** que permite buscas pelo título com **LIKE ignorando maiúsculas e minúsculas**.
+
+```java
+@Spec(path = "title", spec = LikeIgnoreCase.class)
+public interface LessonSpec extends Specification<LessonModel> {}
+```
+- Especificação para **lições (`LessonModel`)** com o mesmo comportamento.
+
+---
+
+## 🔹 **Método `moduleCourseId`**
+```java
+public static Specification<ModuleModel> moduleCourseId(final UUID courseId) {
+    return (root, query, cb) -> {
+        query.distinct(true);
+        Root<ModuleModel> module = root;
+        Root<CourseModel> course = query.from(CourseModel.class);
+        Expression<Collection<ModuleModel>> courseModules = course.get("modules");
+        return cb.and(cb.equal(course.get("courseId"), courseId), cb.isMember(module, courseModules));
+    };
+}
+```
+✅ **Objetivo:** Criar uma especificação para buscar **módulos (`ModuleModel`)** que pertencem a um determinado **curso (`CourseModel`)**.
+
+🔍 **Explicação:**
+1. `query.distinct(true);` → Garante que os resultados não tenham duplicatas.
+2. `Root<ModuleModel> module = root;` → Define a raiz da consulta (`ModuleModel`).
+3. `Root<CourseModel> course = query.from(CourseModel.class);` → Adiciona `CourseModel` à consulta.
+4. `Expression<Collection<ModuleModel>> courseModules = course.get("modules");` → Obtém a coleção de módulos do curso.
+5. `cb.and(cb.equal(course.get("courseId"), courseId), cb.isMember(module, courseModules));`
+   - **Filtra os cursos cujo `courseId` é igual ao passado na consulta.**
+   - **Filtra os módulos que pertencem ao curso correspondente.**
+
+---
+
+## 🔹 **Método `lessonModuleId`**
+```java
+public static Specification<LessonModel> lessonModuleId(final UUID moduleId) {
+    return (root, query, cb) -> {
+        query.distinct(true);
+        Root<LessonModel> lesson = root;
+        Root<ModuleModel> module = query.from(ModuleModel.class);
+        Expression<Collection<LessonModel>> moduleLessons = module.get("lessons");
+        return cb.and(cb.equal(module.get("moduleId"), moduleId), cb.isMember(lesson, moduleLessons));
+    };
+}
+```
+✅ **Objetivo:** Criar uma especificação para buscar **lições (`LessonModel`)** que pertencem a um determinado **módulo (`ModuleModel`)**.
+
+🔍 **Explicação:**
+1. `query.distinct(true);` → Garante que não haja duplicatas.
+2. `Root<LessonModel> lesson = root;` → Define a raiz da consulta (`LessonModel`).
+3. `Root<ModuleModel> module = query.from(ModuleModel.class);` → Adiciona `ModuleModel` à consulta.
+4. `Expression<Collection<LessonModel>> moduleLessons = module.get("lessons");` → Obtém a coleção de lições do módulo.
+5. `cb.and(cb.equal(module.get("moduleId"), moduleId), cb.isMember(lesson, moduleLessons));`
+   - **Filtra os módulos cujo `moduleId` é igual ao passado na consulta.**
+   - **Filtra as lições que pertencem ao módulo correspondente.**
+
+---
+
+## 📌 **Resumo**
+- **Interfaces `CourseSpec`, `ModuleSpec` e `LessonSpec`**: Criam filtros dinâmicos baseados em campos específicos das entidades.
+- **Método `moduleCourseId(UUID courseId)`**: Retorna os módulos pertencentes a um curso específico.
+- **Método `lessonModuleId(UUID moduleId)`**: Retorna as lições pertencentes a um módulo específico.
+- **Uso de `@Spec` e `@And`**: Permite que a API forneça buscas dinâmicas sem a necessidade de criar queries manuais no repositório.
+
+Essa abordagem torna a aplicação **mais flexível**, facilitando a criação de buscas avançadas de maneira declarativa e reutilizável. 🚀
