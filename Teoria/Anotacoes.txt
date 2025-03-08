@@ -370,3 +370,145 @@ public interface UserRepository extends JpaRepository<UserModel, UUID>, JpaSpeci
 ✔ **HATEOAS**: Links são adicionados a cada usuário, facilitando a navegação na API REST.  
 
 Esse padrão é muito útil para construir APIs REST escaláveis e flexíveis. 🚀
+
+-- Annotation @PasswordConstraint --
+
+A annotation `@PasswordConstraint` no seu código é uma **validação personalizada** utilizada para garantir que a senha atenda a critérios específicos. Ela é aplicada nos campos `password` e `oldPassword` do `UserRecordDto` e faz parte da **Bean Validation API (Jakarta Validation, antiga Javax Validation)**, integrada ao Spring Boot.  
+
+---
+
+## **1️⃣ Onde a annotation é usada?**
+No DTO (`UserRecordDto`), você usa `@PasswordConstraint` para validar os campos `password` e `oldPassword`:
+
+```java
+@PasswordConstraint(groups = {UserView.RegistrationPost.class, UserView.PasswordPut.class})
+@JsonView({UserView.RegistrationPost.class, UserView.PasswordPut.class})
+String password;
+```
+
+Isso significa que:
+- Quando um usuário se registra ou atualiza a senha (`RegistrationPost` ou `PasswordPut`), a senha precisa passar pela validação definida em `@PasswordConstraint`.
+
+---
+
+## **2️⃣ Como `@PasswordConstraint` foi criada?**
+Essa annotation personalizada geralmente é implementada com duas partes:  
+1. **A annotation (`@interface PasswordConstraint`)**  
+2. **O validador (`PasswordConstraintValidator`)**
+
+---
+
+### **📌 1. Criando a annotation personalizada**
+```java
+import jakarta.validation.Constraint;
+import jakarta.validation.Payload;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+@Constraint(validatedBy = PasswordConstraintValidator.class)  // Define a classe que implementa a lógica da validação
+@Target({ ElementType.FIELD })  // Pode ser usada apenas em campos
+@Retention(RetentionPolicy.RUNTIME)  // A annotation será verificada em tempo de execução
+public @interface PasswordConstraint {
+    
+    String message() default "Password does not meet the security requirements"; // Mensagem de erro padrão
+    
+    Class<?>[] groups() default {};  // Permite agrupar validações para diferentes cenários
+    
+    Class<? extends Payload>[] payload() default {};  // Metadados adicionais (geralmente não são utilizados)
+}
+```
+
+**Explicação:**  
+✔ `@Constraint(validatedBy = PasswordConstraintValidator.class)`: Define a classe responsável por validar a senha.  
+✔ `@Target(ElementType.FIELD)`: Indica que a annotation pode ser usada em atributos de classe.  
+✔ `@Retention(RetentionPolicy.RUNTIME)`: Garante que a validação seja aplicada durante a execução da aplicação.  
+✔ `String message() default "..."`: Define a mensagem de erro que será exibida caso a validação falhe.  
+✔ `Class<?>[] groups() default {}`: Permite que a validação seja aplicada em contextos específicos (como `RegistrationPost` e `PasswordPut`).  
+✔ `Class<? extends Payload>[] payload() default {}`: Pode ser usado para carregar metadados adicionais.
+
+---
+
+### **📌 2. Criando o Validador (`PasswordConstraintValidator`)**
+A annotation sozinha não faz nada. Precisamos implementar a lógica da validação em uma classe separada.
+
+```java
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
+
+public class PasswordConstraintValidator implements ConstraintValidator<PasswordConstraint, String> {
+
+    @Override
+    public void initialize(PasswordConstraint constraintAnnotation) {
+        // Método opcional: pode ser usado para inicializar configurações
+    }
+
+    @Override
+    public boolean isValid(String password, ConstraintValidatorContext context) {
+        if (password == null) {
+            return false;  // Senha não pode ser nula
+        }
+
+        // Critérios da senha (exemplo: mínimo 8 caracteres, 1 maiúscula, 1 número e 1 caractere especial)
+        return password.matches("^(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=]).{8,}$");
+    }
+}
+```
+
+**Explicação:**  
+✔ `implements ConstraintValidator<PasswordConstraint, String>` → Diz que essa classe validará `String` com a regra de `@PasswordConstraint`.  
+✔ `isValid(String password, ConstraintValidatorContext context)` → Implementa a lógica da validação:  
+   - **Se a senha for nula, retorna `false`** (senha obrigatória).  
+   - **Se a senha não seguir o regex, retorna `false`**.  
+   - **O regex exige:**  
+     🔹 Pelo menos **8 caracteres**  
+     🔹 Pelo menos **1 letra maiúscula**  
+     🔹 Pelo menos **1 número**  
+     🔹 Pelo menos **1 caractere especial** (@, #, $, %, ^, &, +, =)  
+
+---
+
+## **3️⃣ Como a validação acontece?**
+Quando um usuário tenta registrar ou atualizar a senha, o Spring Boot automaticamente valida os dados do DTO antes de continuar o fluxo da requisição.
+
+### **Exemplo de requisição JSON**
+#### 🔴 **Requisição inválida (sem número e caractere especial)**
+```json
+{
+  "username": "john_doe",
+  "email": "john.doe@example.com",
+  "password": "Password"
+}
+```
+🔹 **Resposta da API (HTTP 400 - Bad Request)**  
+```json
+{
+  "password": "Password does not meet the security requirements"
+}
+```
+
+#### ✅ **Requisição válida**
+```json
+{
+  "username": "john_doe",
+  "email": "john.doe@example.com",
+  "password": "Pa$$w0rd"
+}
+```
+🔹 **Resposta da API (HTTP 201 - Created)**  
+```json
+{
+  "message": "User created successfully"
+}
+```
+
+---
+
+## **🔥 Resumo Geral**
+✔ `@PasswordConstraint` é uma annotation personalizada que valida a senha.  
+✔ Ela é usada no DTO para aplicar regras de validação nos campos `password` e `oldPassword`.  
+✔ A annotation está vinculada ao validador `PasswordConstraintValidator`, que implementa a lógica da validação.  
+✔ O Spring Boot executa a validação automaticamente antes de processar a requisição.  
+
+Esse é um ótimo exemplo de **boas práticas** no Spring Boot, garantindo **segurança** e **flexibilidade** ao sistema. 🚀
