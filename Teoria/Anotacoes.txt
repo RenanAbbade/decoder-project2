@@ -732,3 +732,38 @@ Aqui, os dados da coleção de `alunos` seriam usados para **preencher o `Set<Al
 ### **Conclusão:**
 
 A anotação `@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)` é uma maneira eficiente de controlar como as coleções e associações são tratadas ao converter objetos Java para JSON e vice-versa. Usá-la acima de propriedades mapeadas com `@OneToMany` ou `@ManyToOne` ajuda a evitar problemas de **serialização circular** e pode ser útil para proteger ou omitir certos dados durante a **exposição de dados via API REST**.
+
+No código fornecido, você está usando várias anotações no campo `modules` de uma classe. Vamos analisar cada uma delas e explicar seu papel:
+
+### 1. **`@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)`**
+   - **Objetivo**: Controla a serialização e desserialização de um campo durante a conversão entre objetos Java e JSON.
+   - **`WRITE_ONLY`**: Significa que o campo será **somente gravado** (aceito durante a desserialização do JSON para o objeto Java), mas **não será incluído no JSON** durante a serialização (quando o objeto Java é convertido para JSON).
+   - **Uso comum**: Quando você deseja permitir que um campo seja aceito como entrada (em uma requisição, por exemplo), mas não deseja que ele seja exposto de volta na resposta. Isso pode ser útil, por exemplo, para evitar a exposição de dados sensíveis ou de coleções em respostas da API.
+
+### 2. **`@OneToMany(mappedBy = "course", fetch = FetchType.LAZY)`**
+   - **Objetivo**: Define o relacionamento entre duas entidades no contexto do JPA (Java Persistence API). Neste caso, o relacionamento é **"um para muitos"** entre a entidade que contém o campo `modules` e a entidade `ModuleModel`.
+   - **`mappedBy = "course"`**: Indica que o mapeamento do relacionamento é feito pelo campo `course` na classe `ModuleModel`. Ou seja, a classe `ModuleModel` tem um atributo que aponta para a entidade que contém o campo `modules`, e a responsabilidade do relacionamento está na outra ponta da associação.
+   - **`fetch = FetchType.LAZY`**: Define o tipo de carregamento (fetching) da coleção. **Lazy loading** significa que os `modules` não serão carregados automaticamente quando a entidade que os contém for carregada. Em vez disso, eles serão carregados sob demanda, ou seja, quando você acessar o campo `modules`. Isso pode melhorar a performance, especialmente quando você tem coleções grandes, evitando o carregamento desnecessário de dados.
+
+### 3. **`@Fetch(FetchMode.SUBSELECT)`**
+   - **Objetivo**: Esta anotação é específica do Hibernate e é usada para controlar o comportamento de **fetching** (carregamento de dados).
+   - **`FetchMode.SUBSELECT`**: Quando essa estratégia é usada, o Hibernate carrega os dados associados de forma otimizada usando um subselect (subconsulta). Em vez de carregar os dados relacionados com uma consulta separada para cada entidade, o Hibernate utiliza uma subconsulta que retorna todos os dados em um único comando SQL. Isso pode melhorar a performance em casos onde há muitas entidades relacionadas, evitando o **N+1 Select Problem**.
+   - **Uso comum**: Quando você deseja otimizar a recuperação de dados em relacionamentos "um para muitos" ou "muitos para muitos", especialmente quando há muitas entidades associadas e você quer evitar múltiplas consultas SQL.
+
+### 4. **`@OnDelete(action = OnDeleteAction.CASCADE)`**
+   - **Objetivo**: Controla o comportamento de exclusão de registros no banco de dados. Especificamente, esta anotação é usada para definir o comportamento quando a entidade relacionada é excluída.
+   - **`OnDeleteAction.CASCADE`**: Quando uma entidade pai (neste caso, a entidade que contém o campo `modules`) é excluída, todas as entidades filhas (os `modules`) relacionadas serão automaticamente excluídas também. Ou seja, se você excluir um `Course`, todos os `ModuleModel` relacionados serão removidos do banco de dados. Isso ajuda a garantir a integridade referencial no banco de dados, removendo registros órfãos.
+   - **Uso comum**: Usado em relacionamentos onde é desejado que a exclusão de um registro pai resulte na exclusão automática dos registros filhos relacionados.
+
+### 5. **`private Set<ModuleModel> modules;`**
+   - **Objetivo**: Define o campo que armazenará a coleção de entidades relacionadas. O tipo `Set<ModuleModel>` indica que você está usando uma coleção do tipo `Set` para armazenar os módulos relacionados ao curso. `Set` é uma coleção que não permite elementos duplicados, o que significa que cada módulo será único para o curso.
+
+### Resumo completo:
+
+O campo `modules` da entidade é uma coleção **"um para muitos"** (`@OneToMany`) de `ModuleModel` que é carregada **preguiçosamente (Lazy)**. Isso significa que, quando você carregar o `Course`, os `modules` não serão carregados imediatamente; eles serão carregados quando você acessá-los.
+
+- A anotação `@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)` garante que os módulos não sejam retornados quando o `Course` for serializado para JSON (usado principalmente para evitar a exposição de dados sensíveis ou evitar ciclos de referência).
+- O `@Fetch(FetchMode.SUBSELECT)` faz com que o Hibernate use uma **subconsulta** para carregar os módulos, otimizando a recuperação de dados em vez de fazer várias consultas separadas.
+- A anotação `@OnDelete(action = OnDeleteAction.CASCADE)` garante que, quando um `Course` for excluído, todos os `ModuleModel` associados também sejam excluídos automaticamente.
+
+Essas anotações ajudam a controlar o comportamento de carregamento de dados e a integridade do banco de dados em um relacionamento entre entidades, além de melhorar a performance ao evitar consultas desnecessárias e garantir a consistência dos dados.
